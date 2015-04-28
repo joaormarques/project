@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Cardboard Platform Project</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <style>
+    body {
+        margin: 0px;
+        overflow: hidden;
+    }
+
+    #example {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+    }
+    </style>
+</head>
+
+<body>
+    <div id=example style="position:absolute;"></div>
+    <script src="js/three.jm.min.js"></script>
+    <script src="js/StereoEffect.js"></script>
+    <script src="js/DeviceOrientationControls.js"></script>
+    <script src="js/OrbitControls.js"></script>
+    <script>
+    var camera, scene, renderer;
+    var effect, controls;
+    var element, container;
+    var helper;
+    var clock = new THREE.Clock();
+    var clockclick = 0;
+    var Dobject;
+    var raycaster = new THREE.Raycaster();
+    var mouse = new THREE.Vector2(),INTERSECTED;
+    var sprite;
+    var radius = 100,
+        theta = 0;
+    var spritemapred;
+    var spritemapblue, spritematerialred, spritematerialblue;
+    var intersects;
+
+    init();
+    animate();
+
+    function init() {
+        console.log(raycaster);
+        renderer = new THREE.WebGLRenderer({ antialiasing: true });
+        renderer.shadowMapType = THREE.PCFSoftShadowMap; // options are THREE.BasicShadowMap | THREE.PCFShadowMap | THREE.PCFSoftShadowMap
+
+        element = renderer.domElement;
+        container = document.getElementById('example');
+        container.appendChild(element);
+
+        effect = new THREE.StereoEffect(renderer);
+
+        scene = new THREE.Scene();
+
+        camera = new THREE.PerspectiveCamera(90, 1, 0.001, 700);
+        camera.position.set(0, 10, 0);
+        scene.add(camera);
+
+        controls = new THREE.OrbitControls(camera, element);
+        controls.rotateUp(Math.PI / 4);
+        controls.target.set(
+            camera.position.x + 0.1,
+            camera.position.y,
+            camera.position.z
+        );
+        controls.noZoom = true;
+        controls.noPan = true;
+        controls.autoRotate = false;
+
+
+
+        var light = new THREE.HemisphereLight(0x777777, 0x000000, 0.6);
+        light.shadowMapWidth = 1024; // default is 512
+        light.shadowMapHeight = 1024; // default is 512
+        //scene.add(light);
+        var light2 = new THREE.AmbientLight(0x222222, 0.4);
+        scene.add(light2);
+
+        //floor texture
+        var texture2 = THREE.ImageUtils.loadTexture(
+            'img/checker.png'
+        );
+        texture2.wrapS = THREE.RepeatWrapping;
+        texture2.wrapT = THREE.RepeatWrapping;
+        texture2.repeat = new THREE.Vector2(50, 50);
+        texture2.anisotropy = renderer.getMaxAnisotropy();
+        //floor material
+        var material2 = new THREE.MeshPhongMaterial({
+            color: 0xffffff,
+            specular: 0xffffff,
+            shininess: 1,
+            shading: THREE.FlatShading,
+            map: texture2
+        });
+
+        var material3 = new THREE.MeshLambertMaterial({
+            color: 0xdcdcdc
+        });
+
+        map = THREE.ImageUtils.loadTexture('img/Mundaneum_fabricafeatures_1.jpg');
+        geometry = new THREE.PlaneGeometry(20, 10, 20);
+        material = new THREE.MeshPhongMaterial({
+            shading: THREE.FlatShading,
+            color: 0xdcdcdc,
+            ambient: 0xffffff,
+            emissive: 0x989898,
+            specular: 0x111111,
+            shininess: 30,
+            map: map,
+            side: THREE.DoubleSide
+        });
+        Pmesh = new THREE.Mesh(geometry, material);
+        map.wrapS = map.wrapT = THREE.RepeatWrapping;
+        map.repeat.set(1, 1);
+        Pmesh.position.set(10, 10, 10);
+        Pmesh.rotation.y = THREE.Math.degToRad(45);
+        scene.add(Pmesh);
+
+        map = THREE.ImageUtils.loadTexture('img/portal.png');
+        geometry = new THREE.PlaneGeometry(15, 20, 20);
+        material = new THREE.MeshPhongMaterial({
+            shading: THREE.FlatShading,
+            color: 0xdcdcdc,
+            ambient: 0xffffff,
+            emissive: 0x989898,
+            specular: 0x111111,
+            shininess: 30,
+            map: map,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 1
+        });
+        Pmesh = new THREE.Mesh(geometry, material);
+        map.wrapS = map.wrapT = THREE.RepeatWrapping;
+        map.repeat.set(1, 1);
+        Pmesh.position.set(-10, 15, -10);
+        Pmesh.rotation.y = THREE.Math.degToRad(45);
+        scene.add(Pmesh);
+
+        map = THREE.ImageUtils.loadTexture('img/title_W.png');
+        geometry = new THREE.PlaneGeometry(20, 2, 4);
+        material = new THREE.MeshPhongMaterial({
+            shading: THREE.FlatShading,
+            color: 0xdcdcdc,
+            ambient: 0xffffff,
+            emissive: 0x989898,
+            specular: 0x111111,
+            shininess: 30,
+            map: map,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 1
+        });
+        mustashmesh = new THREE.Mesh(geometry, material);
+        map.wrapS = map.wrapT = THREE.RepeatWrapping;
+        map.repeat.set(1, 1);
+        mustashmesh.position.set(10, 20, 10);
+        mustashmesh.rotation.y = THREE.Math.degToRad(225);
+        scene.add(mustashmesh);
+
+        map = THREE.ImageUtils.loadTexture('img/date.png');
+        geometry = new THREE.PlaneGeometry(4, 4, 4);
+        material = new THREE.MeshPhongMaterial({
+            shading: THREE.FlatShading,
+            color: 0xdcdcdc,
+            ambient: 0xffffff,
+            emissive: 0x989898,
+            specular: 0x111111,
+            shininess: 30,
+            map: map,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 1
+        });
+        mustashmesh = new THREE.Mesh(geometry, material);
+        map.wrapS = map.wrapT = THREE.RepeatWrapping;
+        map.repeat.set(1, 1);
+        mustashmesh.position.set(-10, 20, 10);
+        mustashmesh.rotation.y = THREE.Math.degToRad(135);
+        scene.add(mustashmesh);
+
+        map = THREE.ImageUtils.loadTexture('img/resume2.png');
+        geometry = new THREE.PlaneGeometry(12, 10, 10);
+        material = new THREE.MeshPhongMaterial({
+            shading: THREE.FlatShading,
+            color: 0xdcdcdc,
+            ambient: 0xffffff,
+            emissive: 0x989898,
+            specular: 0x111111,
+            shininess: 30,
+            map: map,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 1
+        });
+        resumemesh = new THREE.Mesh(geometry, material);
+        map.wrapS = map.wrapT = THREE.RepeatWrapping;
+        map.repeat.set(1, 1);
+        resumemesh.position.set(13, 10, -5);
+        resumemesh.rotation.y = THREE.Math.degToRad(280);
+        scene.add(resumemesh);
+
+        map = THREE.ImageUtils.loadTexture('img/Mundaneum_fabricafeatures_4.jpg');
+        geometry = new THREE.PlaneGeometry(20, 10, 20);
+        material = new THREE.MeshPhongMaterial({
+            shading: THREE.FlatShading,
+            color: 0xdcdcdc,
+            ambient: 0xffffff,
+            emissive: 0x989898,
+            specular: 0x111111,
+            shininess: 30,
+            map: map,
+            side: THREE.DoubleSide
+        });
+        P2mesh = new THREE.Mesh(geometry, material);
+        map.wrapS = map.wrapT = THREE.RepeatWrapping;
+        map.repeat.set(1, 1);
+        P2mesh.position.set(-10, 10, 10);
+        P2mesh.rotation.y = THREE.Math.degToRad(-45);
+        scene.add(P2mesh);
+
+        var geometry = new THREE.CylinderGeometry( 0, 3, 10, 3 );
+                geometry.applyMatrix( new THREE.Matrix4().makeTranslation( 0, 50, 0 ) );
+                geometry.applyMatrix( new THREE.Matrix4().makeRotationX( Math.PI / 2 ) );
+                helper = new THREE.Mesh( geometry, new THREE.MeshNormalMaterial() );
+                scene.add( helper );
+
+
+                spritemapred = THREE.ImageUtils.loadTexture( "img/sprite_red.png" );
+                spritemapblue = THREE.ImageUtils.loadTexture( "img/sprite_blue.png" );
+                spritematerialblue = new THREE.SpriteMaterial( { map: spritemapblue, color: 0xffffff, fog: true } );
+                spritematerialblue.needsUpdate=true;
+                spritematerialred = new THREE.SpriteMaterial( { map: spritemapred, color: 0xffffff, fog: true } );
+                sprite = new THREE.Sprite( material );
+                scene.add( sprite );
+
+
+
+        var geometry2 = new THREE.PlaneGeometry(1000, 1000);
+
+        var mesh2 = new THREE.Mesh(geometry2, material3);
+        mesh2.rotation.x = -Math.PI / 2;
+        scene.add(mesh2);
+
+        window.addEventListener('deviceorientation', setOrientationControls, true);
+
+        //events
+        function setOrientationControls(e) {
+            if (!e.alpha) {
+                return;
+            }
+
+            controls = new THREE.DeviceOrientationControls(camera, true);
+            controls.connect();
+            controls.update();
+
+            element.addEventListener('click', fullscreen, false);
+
+            window.removeEventListener('deviceorientation', setOrientationControls);
+        }
+        document.addEventListener('mousemove', onDocumentMouseMove, false);
+        window.addEventListener('resize', resize, false);
+        setTimeout(resize, 1);
+
+        controls.update();
+    }
+
+    function onDocumentMouseMove(event) {
+
+        event.preventDefault();
+
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    }
+
+
+    function resize() {
+        var width = container.offsetWidth;
+        var height = container.offsetHeight;
+
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
+
+        renderer.setSize(width, height);
+        effect.setSize(width, height);
+
+    }
+
+    function update(dt) {
+        resize();
+
+        camera.updateProjectionMatrix();
+
+        controls.update(dt);
+    }
+
+    function render(dt) {
+        // find intersections
+        //console.log(raycaster);
+        //console.log(mouse);
+        raycaster.setFromCamera(mouse, camera);
+
+        intersects = raycaster.intersectObjects(scene.children);
+
+        // console.log(intersects);
+        // console.log( intersects.length);
+        if (intersects.length > 0) {
+
+            if (INTERSECTED != intersects[0].object) {
+                clockclick+=0.01;
+                sprite.position.set(intersects[0].point.x,intersects[0].point.y,intersects[0].point.z);
+                if(intersects.length >= 2){
+                    console.log(intersects[ 1 ].object.rotation);
+                    // var e = intersects[ 1 ].object.rotation;
+                    // var v = new THREE.Vector3( e.a, e.b, e.c );
+                    //sprite.rotation.set(v);
+                }
+                 if(clockclick >= 0.3){
+                    var sizecorrection = 1.4;
+                        sprite.scale.set(0.6+clockclick,0.6+clockclick,0.6+clockclick);
+                     sprite.material = spritematerialred;
+
+                     if(clockclick>=0.9){
+                        intersects[0].material = spritematerialblue;
+                     }
+                 }else{
+                     sprite.scale.set(1,1,1);
+                     sprite.material = spritematerialblue;
+
+                 }
+
+
+
+                //INTERSECTED = intersects[0].object;
+                // INTERSECTED.currentHex = INTERSECTED.material.emissive.getHex();
+                // INTERSECTED.material.emissive.setHex(0xff0000);
+                if(Dobject != intersects[0].object){
+                    clockclick=0;
+                }
+                Dobject = intersects[0].object;
+                //console.log(Dobject);
+            }
+
+        } else {
+            clockclick = 0;
+            if (INTERSECTED) INTERSECTED.material.emissive.setHex(INTERSECTED.currentHex);
+
+            INTERSECTED = null;
+
+        }
+        console.log(clockclick);
+        effect.render(scene, camera);
+    }
+
+    function animate(t) {
+        requestAnimationFrame(animate);
+
+        update(clock.getDelta());
+        render(clock.getDelta());
+    }
+
+    function fullscreen() {
+        if (container.requestFullscreen) {
+            container.requestFullscreen();
+        } else if (container.msRequestFullscreen) {
+            container.msRequestFullscreen();
+        } else if (container.mozRequestFullScreen) {
+            container.mozRequestFullScreen();
+        } else if (container.webkitRequestFullscreen) {
+            container.webkitRequestFullscreen();
+        }
+    }
+    </script>
+</body>
+
+</html>
