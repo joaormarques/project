@@ -320,9 +320,9 @@
                 sprite.position.set(intersects[0].point.x,intersects[0].point.y,intersects[0].point.z);
                 if(intersects.length >= 2){
                     console.log(intersects[ 1 ].object.rotation);
-                    var e = intersects[ 1 ].object.rotation;
-                    var v = new THREE.Vector3( e.a, e.b, e.c );
-                sprite.rotation.set(v);
+                    // var e = intersects[ 1 ].object.rotation;
+                    // var v = new THREE.Vector3( e.a, e.b, e.c );
+                    //sprite.rotation.set(v);
                 }
                  if(clockclick >= 0.3){
                     var sizecorrection = 1.4;
