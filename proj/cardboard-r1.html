@@ -23,7 +23,7 @@
 
 <body>
     <div id=example style="position:absolute;"></div>
-    <script src="../js/three.js"></script>
+    <script src="../js/three.jm.min.js"></script>
     <script src="../js/StereoEffect.js"></script>
     <script src="../js/DeviceOrientationControls.js"></script>
     <script src="../js/OrbitControls.js"></script>
@@ -31,18 +31,27 @@
     var camera, scene, renderer;
     var effect, controls;
     var element, container;
+    var helper;
     var clock = new THREE.Clock();
+    var clockclick = 0;
+    var Dobject;
     var raycaster = new THREE.Raycaster();
-    var mouse = new THREE.Vector2(),
-        INTERSECTED;
+    var mouse = new THREE.Vector2(),INTERSECTED;
+    var sprite;
     var radius = 100,
         theta = 0;
+    var spritemapred;
+    var spritemapblue, spritematerialred, spritematerialblue;
+    var intersects;
+
     init();
     animate();
 
     function init() {
         console.log(raycaster);
-        renderer = new THREE.WebGLRenderer();
+        renderer = new THREE.WebGLRenderer({ antialiasing: true });
+        renderer.shadowMapType = THREE.PCFSoftShadowMap; // options are THREE.BasicShadowMap | THREE.PCFShadowMap | THREE.PCFSoftShadowMap
+
         element = renderer.domElement;
         container = document.getElementById('example');
         container.appendChild(element);
@@ -69,13 +78,15 @@
 
 
         var light = new THREE.HemisphereLight(0x777777, 0x000000, 0.6);
+        light.shadowMapWidth = 1024; // default is 512
+        light.shadowMapHeight = 1024; // default is 512
         //scene.add(light);
-        var light2 = new THREE.AmbientLight(0x222222);
+        var light2 = new THREE.AmbientLight(0x222222, 0.4);
         scene.add(light2);
 
         //floor texture
         var texture2 = THREE.ImageUtils.loadTexture(
-            '../textures/patterns/checker.png'
+            'img/checker.png'
         );
         texture2.wrapS = THREE.RepeatWrapping;
         texture2.wrapT = THREE.RepeatWrapping;
@@ -95,7 +106,7 @@
         });
 
         map = THREE.ImageUtils.loadTexture('img/Mundaneum_fabricafeatures_1.jpg');
-        geometry = new THREE.PlaneGeometry(20, 10, 20);
+        geometry = new THREE.PlaneBufferGeometry(20, 10, 20);
         material = new THREE.MeshPhongMaterial({
             shading: THREE.FlatShading,
             color: 0xdcdcdc,
@@ -114,7 +125,7 @@
         scene.add(Pmesh);
 
         map = THREE.ImageUtils.loadTexture('img/portal.png');
-        geometry = new THREE.PlaneGeometry(15, 20, 20);
+        geometry = new THREE.PlaneBufferGeometry(15, 20, 20);
         material = new THREE.MeshPhongMaterial({
             shading: THREE.FlatShading,
             color: 0xdcdcdc,
@@ -135,7 +146,7 @@
         scene.add(Pmesh);
 
         map = THREE.ImageUtils.loadTexture('img/title_W.png');
-        geometry = new THREE.PlaneGeometry(20, 2, 4);
+        geometry = new THREE.PlaneBufferGeometry(20, 2, 4);
         material = new THREE.MeshPhongMaterial({
             shading: THREE.FlatShading,
             color: 0xdcdcdc,
@@ -156,7 +167,7 @@
         scene.add(mustashmesh);
 
         map = THREE.ImageUtils.loadTexture('img/date.png');
-        geometry = new THREE.PlaneGeometry(4, 4, 4);
+        geometry = new THREE.PlaneBufferGeometry(4, 4, 4);
         material = new THREE.MeshPhongMaterial({
             shading: THREE.FlatShading,
             color: 0xdcdcdc,
@@ -177,7 +188,7 @@
         scene.add(mustashmesh);
 
         map = THREE.ImageUtils.loadTexture('img/resume2.png');
-        geometry = new THREE.PlaneGeometry(12, 10, 10);
+        geometry = new THREE.PlaneBufferGeometry(12, 10, 10);
         material = new THREE.MeshPhongMaterial({
             shading: THREE.FlatShading,
             color: 0xdcdcdc,
@@ -198,7 +209,7 @@
         scene.add(resumemesh);
 
         map = THREE.ImageUtils.loadTexture('img/Mundaneum_fabricafeatures_4.jpg');
-        geometry = new THREE.PlaneGeometry(20, 10, 20);
+        geometry = new THREE.PlaneBufferGeometry(20, 10, 20);
         material = new THREE.MeshPhongMaterial({
             shading: THREE.FlatShading,
             color: 0xdcdcdc,
@@ -214,16 +225,26 @@
         map.repeat.set(1, 1);
         P2mesh.position.set(-10, 10, 10);
         P2mesh.rotation.y = THREE.Math.degToRad(-45);
-
-
         scene.add(P2mesh);
 
+        var geometry = new THREE.CylinderGeometry( 0, 3, 10, 3 );
+                geometry.applyMatrix( new THREE.Matrix4().makeTranslation( 0, 50, 0 ) );
+                geometry.applyMatrix( new THREE.Matrix4().makeRotationX( Math.PI / 2 ) );
+                helper = new THREE.Mesh( geometry, new THREE.MeshNormalMaterial() );
+                scene.add( helper );
+
+
+                spritemapred = THREE.ImageUtils.loadTexture( "img/sprite_red.png" );
+                spritemapblue = THREE.ImageUtils.loadTexture( "img/sprite_blue.png" );
+                spritematerialblue = new THREE.SpriteMaterial( { map: spritemapblue, color: 0xffffff, fog: true } );
+                spritematerialblue.needsUpdate=true;
+                spritematerialred = new THREE.SpriteMaterial( { map: spritemapred, color: 0xffffff, fog: true } );
+                sprite = new THREE.Sprite( material );
+                scene.add( sprite );
 
 
 
-
-
-        var geometry2 = new THREE.PlaneGeometry(1000, 1000);
+        var geometry2 = new THREE.PlaneBufferGeometry(1000, 1000);
 
         var mesh2 = new THREE.Mesh(geometry2, material3);
         mesh2.rotation.x = -Math.PI / 2;
@@ -288,28 +309,55 @@
         //console.log(mouse);
         raycaster.setFromCamera(mouse, camera);
 
-        var intersects = raycaster.intersectObjects(scene.children);
-        //console.log(intersects);
+        intersects = raycaster.intersectObjects(scene.children);
+
+        // console.log(intersects);
+        // console.log( intersects.length);
         if (intersects.length > 0) {
 
             if (INTERSECTED != intersects[0].object) {
+                clockclick+=0.01;
+                sprite.position.set(intersects[0].point.x,intersects[0].point.y,intersects[0].point.z);
+                if(intersects.length >= 2){
+                    console.log(intersects[ 1 ].object.rotation);
+                    var e = intersects[ 1 ].object.rotation;
+                    var v = new THREE.Vector3( e.a, e.b, e.c );
+                sprite.rotation.set(v);
+                }
+                 if(clockclick >= 0.3){
+                    var sizecorrection = 1.4;
+                        sprite.scale.set(0.6+clockclick,0.6+clockclick,0.6+clockclick);
+                     sprite.material = spritematerialred;
 
-                if (INTERSECTED) INTERSECTED.material.emissive.setHex(INTERSECTED.currentHex);
+                     if(clockclick>=0.9){
+                        intersects[0].material = spritematerialblue;
+                     }
+                 }else{
+                     sprite.scale.set(1,1,1);
+                     sprite.material = spritematerialblue;
 
-                INTERSECTED = intersects[0].object;
-                INTERSECTED.currentHex = INTERSECTED.material.emissive.getHex();
-                INTERSECTED.material.emissive.setHex(0xff0000);
+                 }
 
+
+
+                //INTERSECTED = intersects[0].object;
+                // INTERSECTED.currentHex = INTERSECTED.material.emissive.getHex();
+                // INTERSECTED.material.emissive.setHex(0xff0000);
+                if(Dobject != intersects[0].object){
+                    clockclick=0;
+                }
+                Dobject = intersects[0].object;
+                //console.log(Dobject);
             }
 
         } else {
-
+            clockclick = 0;
             if (INTERSECTED) INTERSECTED.material.emissive.setHex(INTERSECTED.currentHex);
 
             INTERSECTED = null;
 
         }
-
+        console.log(clockclick);
         effect.render(scene, camera);
     }
 
